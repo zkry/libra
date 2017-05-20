@@ -8,11 +8,14 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
+	"github.com/zkry/libra/analysis"
 )
 
 // Features:
 // TODO: Organize output based off of length
 // TODO: Directory summary
+// TODO: Line Count
+// TODO: File Specific analysis
 // Flags:
 // TODO: Non-programming language flag
 // TODO: Ignore file flag
@@ -37,11 +40,12 @@ func fileCollector(files *map[string]int64, c chan os.FileInfo) {
 	for f := range c {
 		// Check if file has extension
 		if ext, ok := getExtension(f.Name()); ok {
-			if !ValidExts[ext] {
+			if _, ok := ValidExts[ext]; !ok {
 				continue
 			}
 			if _, ok := (*files)[ext]; ok {
 				(*files)[ext] = (*files)[ext] + f.Size()
+				analysis.Analize(f.Name())
 			} else {
 				(*files)[ext] = f.Size()
 			}
@@ -74,7 +78,7 @@ func analizeDir(c chan os.FileInfo, filepath string) {
 // printBlocks displays a label with a bar to the right of it.
 // Looks like the following:
 //
-// go: [##########]
+// Go: [#######  ]
 //
 // With ext being the lefthand label, and bar of size n / max.
 func printBlocks(ext string, n int, max int) {
