@@ -6,7 +6,16 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/fatih/color"
 )
+
+// Features:
+// TODO: Organize output based off of length
+// TODO: Directory summary
+// Flags:
+// TODO: Non-programming language flag
+// TODO: Ignore file flag
 
 var wg sync.WaitGroup
 
@@ -40,15 +49,21 @@ func fileCollector(files *map[string]int64, c chan os.FileInfo) {
 	}
 }
 
+func isHidden(n string) bool {
+	return strings.HasPrefix(n, ".")
+}
+
 // alalizeDir takes a directory, feeds all non-directory filetypes
 // into chanel c, and makes a go routine for any found directories
 func analizeDir(c chan os.FileInfo, filepath string) {
 	files, _ := ioutil.ReadDir(filepath)
 	for _, f := range files {
-		fmt.Println("Looking at file", f)
 		if f.IsDir() {
+			if isHidden(f.Name()) {
+				continue
+			}
 			wg.Add(1)
-			go analizeDir(c, f.Name())
+			go analizeDir(c, filepath+"/"+f.Name())
 		} else {
 			c <- f
 		}
@@ -66,7 +81,8 @@ func printBlocks(ext string, n int, max int) {
 	fmt.Printf("%5s: [", ext)
 	for i := 0; i < max; i++ {
 		if i < n {
-			fmt.Print("#")
+			//fmt.Print("#")
+			color.New(color.FgGreen).Fprintf(os.Stdout, "#")
 		} else {
 			fmt.Print(" ")
 		}
@@ -78,7 +94,7 @@ func printBlocks(ext string, n int, max int) {
 // displays a graph showing how much of each file the directory is
 // composed of.
 func dispFiletypeStatistics(fileStats map[string]int64) {
-	barWidth := 20
+	barWidth := 50
 	// Get max size
 	var maxSize int64 = -1
 	for _, val := range fileStats {
@@ -89,21 +105,21 @@ func dispFiletypeStatistics(fileStats map[string]int64) {
 
 	// Display the file types
 	for key, val := range fileStats {
-		blocks := int(float64(val)/float64(maxSize)) * barWidth
+		blocks := int(float64(val) / float64(maxSize) * float64(barWidth))
 		printBlocks(key, blocks, barWidth)
 	}
 }
 
 func main() {
-	//filePath := os.Args[1]
-	filePath := "/Users/zeki/workspace"
+	//filepath := os.Args[1]
+	filepath := "."
 
 	c := make(chan os.FileInfo, 10)
 	fileStats := make(map[string]int64)
 
 	wg.Add(1)
 	go fileCollector(&fileStats, c)
-	go analizeDir(c, filePath)
+	go analizeDir(c, filepath)
 
 	wg.Wait()
 	close(c)
