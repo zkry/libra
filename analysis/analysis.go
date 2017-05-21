@@ -73,9 +73,12 @@ func updateSizeStat(f os.FileInfo) {
 // composed of.
 func dispSizeStat() {
 	barWidth := 50
+	sum := int64(0)
 	// Get max size
 	var maxSize int64 = -1
 	for _, val := range sizeStat {
+		fmt.Println("DEBUG: size - ", val)
+		sum += val
 		if val > maxSize {
 			maxSize = val
 		}
@@ -84,8 +87,27 @@ func dispSizeStat() {
 	// Display the file types
 	for key, val := range sizeStat {
 		blocks := int(float64(val) / float64(maxSize) * float64(barWidth))
-		printBlocks(ValidExts[key], blocks, barWidth)
+		printBlocks(ValidExts[key], blocks, barWidth, float64(val)/float64(sum)*100.0)
 	}
+}
+
+// printBlocks displays a label with a bar to the right of it.
+// Looks like the following:
+//
+// Go: [#######  ]
+//
+// With ext being the lefthand label, and bar of size n / max.
+func printBlocks(ext string, n int, max int, percent float64) {
+	fmt.Printf("%5s: [", ext)
+	for i := 0; i < max; i++ {
+		if i < n {
+			//fmt.Print("#")
+			color.New(color.FgGreen).Fprintf(os.Stdout, "#")
+		} else {
+			fmt.Print(" ")
+		}
+	}
+	fmt.Printf("] %6.2f%%\n", percent)
 }
 
 // Analize takes a file and performs various tests for file
@@ -124,25 +146,6 @@ func GetExtension(n string) (string, bool) {
 	}
 
 	return parts[len(parts)-1], true
-}
-
-// printBlocks displays a label with a bar to the right of it.
-// Looks like the following:
-//
-// Go: [#######  ]
-//
-// With ext being the lefthand label, and bar of size n / max.
-func printBlocks(ext string, n int, max int) {
-	fmt.Printf("%5s: [", ext)
-	for i := 0; i < max; i++ {
-		if i < n {
-			//fmt.Print("#")
-			color.New(color.FgGreen).Fprintf(os.Stdout, "#")
-		} else {
-			fmt.Print(" ")
-		}
-	}
-	fmt.Print("]\n")
 }
 
 // LineCount counts the number of lines in a file given a filename.

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -18,6 +17,7 @@ import (
 // Flags:
 // TODO: Non-programming language flag
 // TODO: Ignore file flag
+// TODO: Add help flag
 
 type FileWithContext struct {
 	fileInfo os.FileInfo
@@ -61,13 +61,15 @@ func analizeDir(c chan FileWithContext, filepath string) {
 }
 
 func main() {
-	if len(os.Args) == 1 {
-		fmt.Println("Usage: libra <filepath>")
-		return
-	}
+	var filepath string
 
-	filepath := os.Args[1]
-	//filepath := "."
+	if len(os.Args) == 1 {
+		//		fmt.Println("Usage: libra <filepath>")
+		filepath = "." // For debugging purposes only
+		// return
+	} else {
+		filepath = os.Args[1]
+	}
 
 	c := make(chan FileWithContext, 10)
 	fileStats := make(map[string]int64)
