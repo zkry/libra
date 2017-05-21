@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 
@@ -76,11 +77,12 @@ func updateSizeStat(f os.FileInfo) {
 // displays a graph showing how much of each file the directory is
 // composed of.
 func dispSizeStat() {
+	barWidth := 50 // in character width
+
 	// Generate statistics for display
-	barWidth := 50
-	sum := int64(0)
-	maxSize := int64(-1)
-	maxLabelWidth := 0
+	sum := int64(0)      // in bytes
+	maxSize := int64(-1) // in bytes
+	maxLabelWidth := 0   // in character width
 	for key, val := range sizeStat {
 		sum += val
 		if val > maxSize {
@@ -91,11 +93,58 @@ func dispSizeStat() {
 		}
 	}
 
+	keys := keysBySortedVal(sizeStat)
+
 	// Display the file types
-	for key, val := range sizeStat {
+	for _, key := range keys {
+		val := sizeStat[key]
 		blocks := int(float64(val) / float64(maxSize) * float64(barWidth))
 		printBlocks(ValidExts[key], blocks, barWidth, float64(val)/float64(sum)*100.0, maxLabelWidth)
 	}
+}
+
+// sizeStatMapKeysByVal returns the list of keys for sizesStat
+// sorted in the order of its keys.
+func keysBySortedVal(m map[string]int64) []string {
+	reverseMap := map[int]string{}
+	reverseKeys := make([]int, 0, 10)
+
+	for key, val := range m {
+		ival := int(val)
+		if _, exists := reverseMap[ival]; !exists {
+			reverseMap[ival] = key
+			reverseKeys = append(reverseKeys, ival)
+		} else {
+			for {
+				ival++
+				if _, taken := reverseMap[ival]; !taken {
+					reverseMap[ival] = key
+					reverseKeys = append(reverseKeys, ival)
+				}
+			}
+		}
+	}
+
+	sort.Ints(reverseKeys)
+	sortedKeys := make([]string, 0, 10)
+
+	for _, revKey := range reverseKeys {
+		val, ok := reverseMap[revKey]
+		if !ok {
+			panic("Fatal error in sortedSizeMapByVal(): should always contain key")
+		}
+		sortedKeys = append(sortedKeys, val)
+	}
+
+	if len(sortedKeys) != len(m) {
+		panic("Fatal error in sortedSizeMapByVal(): lists should be same size")
+	}
+
+	// Sort to make Highest to lowest
+	for left, right := 0, len(sortedKeys)-1; left < right; left, right = left+1, right-1 {
+		sortedKeys[left], sortedKeys[right] = sortedKeys[right], sortedKeys[left]
+	}
+	return sortedKeys
 }
 
 // printBlocks displays a label with a bar to the right of it.
