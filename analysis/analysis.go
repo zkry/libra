@@ -76,21 +76,25 @@ func updateSizeStat(f os.FileInfo) {
 // displays a graph showing how much of each file the directory is
 // composed of.
 func dispSizeStat() {
+	// Generate statistics for display
 	barWidth := 50
 	sum := int64(0)
-	// Get max size
-	var maxSize int64 = -1
-	for _, val := range sizeStat {
+	maxSize := int64(-1)
+	maxLabelWidth := 0
+	for key, val := range sizeStat {
 		sum += val
 		if val > maxSize {
 			maxSize = val
+		}
+		if len(ValidExts[key]) > maxLabelWidth {
+			maxLabelWidth = len(ValidExts[key])
 		}
 	}
 
 	// Display the file types
 	for key, val := range sizeStat {
 		blocks := int(float64(val) / float64(maxSize) * float64(barWidth))
-		printBlocks(ValidExts[key], blocks, barWidth, float64(val)/float64(sum)*100.0)
+		printBlocks(ValidExts[key], blocks, barWidth, float64(val)/float64(sum)*100.0, maxLabelWidth)
 	}
 }
 
@@ -100,8 +104,14 @@ func dispSizeStat() {
 // Go: [#######  ]
 //
 // With ext being the lefthand label, and bar of size n / max.
-func printBlocks(ext string, n int, max int, percent float64) {
-	fmt.Printf("%5s: [", ext)
+func printBlocks(name string, n int, max int, percent float64, labelWidth int) {
+	// Generate padding to left of label
+	padding := labelWidth - len(name)
+	for i := 0; i < padding; i++ {
+		fmt.Printf(" ")
+	}
+	fmt.Printf("%s: [", name)
+	// Print bar filling
 	for i := 0; i < max; i++ {
 		if i < n {
 			//fmt.Print("#")
@@ -110,6 +120,7 @@ func printBlocks(ext string, n int, max int, percent float64) {
 			fmt.Print(" ")
 		}
 	}
+	// Ending and percentage
 	fmt.Printf("] %6.2f%%\n", percent)
 }
 

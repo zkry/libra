@@ -23,12 +23,13 @@ import (
 // TODO: Add help flag
 // TODO: Hidden files
 
+// Flags
 var flagHelp bool
 
 var wg sync.WaitGroup
 
 // isHidden returns wheather or not the file is a hidden file by checking
-// if its first character is a '.'
+// if its first character is a '.' TODO: Other systems hidden files???
 func isHidden(n string) bool {
 	return strings.HasPrefix(n, ".")
 }
