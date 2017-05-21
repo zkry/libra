@@ -19,30 +19,17 @@ import (
 // TODO: Ignore file flag
 // TODO: Add help flag
 
-type FileWithContext struct {
-	fileInfo os.FileInfo
-	path     string
-}
-
 var wg sync.WaitGroup
 
-// fileCollector is the function that collects all of the found file
-// information. File information comes from channel c, and is written
-// to the files map
-func fileCollector(files *map[string]int64, c chan FileWithContext) {
-	for f := range c {
-		analysis.Analize(f.fileInfo, f.path)
-		wg.Done()
-	}
-}
-
+// isHidden returns wheather or not the file is a hidden file by checking
+// if its first character is a '.'
 func isHidden(n string) bool {
 	return strings.HasPrefix(n, ".")
 }
 
 // alalizeDir takes a directory, feeds all non-directory filetypes
 // into chanel c, and makes a go routine for any found directories
-func analizeDir(c chan FileWithContext, filepath string) {
+func analizeDir(filepath string) {
 	files, _ := ioutil.ReadDir(filepath)
 	for _, f := range files {
 		if f.IsDir() {
@@ -50,11 +37,10 @@ func analizeDir(c chan FileWithContext, filepath string) {
 				continue
 			}
 			wg.Add(1)
-			go analizeDir(c, filepath+"/"+f.Name())
+			go analizeDir(filepath + "/" + f.Name())
 		} else {
 			wg.Add(1)
-
-			c <- FileWithContext{fileInfo: f, path: filepath}
+			go analysis.Analize(f, filepath, &wg)
 		}
 	}
 	wg.Done()
@@ -71,15 +57,10 @@ func main() {
 		filepath = os.Args[1]
 	}
 
-	c := make(chan FileWithContext, 10)
-	fileStats := make(map[string]int64)
-
 	wg.Add(1)
-	go fileCollector(&fileStats, c)
-	go analizeDir(c, filepath)
+	go analizeDir(filepath)
 
 	wg.Wait()
-	close(c)
 
 	analysis.DisplayReport()
 }

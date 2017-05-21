@@ -115,7 +115,7 @@ func printBlocks(ext string, n int, max int, percent float64) {
 }
 
 // Analize takes a file and performs various tests for file
-func Analize(f os.FileInfo, path string) {
+func Analize(f os.FileInfo, path string, wg *sync.WaitGroup) {
 	// Filesize Statistic
 	updateSizeStat(f)
 
@@ -126,6 +126,8 @@ func Analize(f os.FileInfo, path string) {
 	}
 
 	// TODO: Git Analysis
+
+	wg.Done()
 }
 
 // DisplayReport writes all of the collected data to the screen. Called at the
