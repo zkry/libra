@@ -81,7 +81,6 @@ func dispSizeStat() {
 	// Get max size
 	var maxSize int64 = -1
 	for _, val := range sizeStat {
-		fmt.Println("DEBUG: size - ", val)
 		sum += val
 		if val > maxSize {
 			maxSize = val

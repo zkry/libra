@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -14,10 +16,14 @@ import (
 // TODO: Directory summary
 // TODO: Line Count
 // TODO: File Specific analysis
+// TODO: Auto-ignore vendor file for go dirs
 // Flags:
 // TODO: Non-programming language flag
 // TODO: Ignore file flag
 // TODO: Add help flag
+// TODO: Hidden files
+
+var flagHelp bool
 
 var wg sync.WaitGroup
 
@@ -46,9 +52,29 @@ func analizeDir(filepath string) {
 	wg.Done()
 }
 
-func main() {
-	var filepath string
+func helpMessage() {
+	fmt.Print(`Libra is a tool for analizing directories and their code composition.
 
+Usages:
+
+	libra [flags] [directory]
+
+Flags:
+
+	-h   Show the help dialoge 
+	`)
+}
+
+func main() {
+	flag.BoolVar(&flagHelp, "h", false, "Show the help dialoge")
+	flag.Parse()
+
+	if flagHelp {
+		helpMessage()
+		return
+	}
+
+	var filepath string
 	if len(os.Args) == 1 {
 		//		fmt.Println("Usage: libra <filepath>")
 		filepath = "." // For debugging purposes only
