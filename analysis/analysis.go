@@ -2,8 +2,14 @@ package analysis
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"strings"
+	"sync"
+
+	"github.com/fatih/color"
 )
 
 type GoStat struct {
@@ -12,8 +18,131 @@ type GoStat struct {
 	fileCt      int
 }
 
-func Analize(filename string) {
+var goStat GoStat
+var goStatMutex sync.Mutex
 
+func updateGoExtStat(f os.FileInfo, path string) error {
+	data, err := ioutil.ReadFile(path + "/" + f.Name())
+	if err != nil {
+		return err
+	}
+
+	funcCt := bytes.Count(data, []byte("func"))
+	interfaceCt := bytes.Count(data, []byte("interface"))
+
+	goStatMutex.Lock()
+	goStat.funcCt = goStat.funcCt + funcCt
+	goStat.interfaceCt = goStat.interfaceCt + interfaceCt
+	goStat.fileCt += 1
+	goStatMutex.Unlock()
+
+	return nil
+}
+
+// displayGoExtStat takes the goStat variable and prints it to the screen
+// in a pretty way
+func displayGoExtStat() {
+	fmt.Printf("\n============= Go =============\n")
+	fmt.Printf("Number of Files      : %d\n", goStat.fileCt)
+	fmt.Printf("Number of Functions  : %d\n", goStat.funcCt)
+	fmt.Printf("Number of Interfaces : %d\n", goStat.interfaceCt)
+}
+
+var sizeStat = map[string]int64{}
+var sizeStatMutex sync.Mutex
+
+// updateSizeStat takes a file and updates the size map for that file
+func updateSizeStat(f os.FileInfo) {
+	sizeStatMutex.Lock()
+	// Check if a . extension exists
+	ext, extOK := GetExtension(f.Name())
+	_, typeOK := ValidExts[ext]
+
+	if extOK && typeOK {
+		if val, ok := sizeStat[ext]; ok {
+			sizeStat[ext] = val + f.Size()
+		} else {
+			sizeStat[ext] = f.Size()
+		}
+	}
+	sizeStatMutex.Unlock()
+}
+
+// dispFiletypeStats takes the map of extensions to total size and
+// displays a graph showing how much of each file the directory is
+// composed of.
+func dispSizeStat() {
+	barWidth := 50
+	// Get max size
+	var maxSize int64 = -1
+	for _, val := range sizeStat {
+		if val > maxSize {
+			maxSize = val
+		}
+	}
+
+	// Display the file types
+	for key, val := range sizeStat {
+		blocks := int(float64(val) / float64(maxSize) * float64(barWidth))
+		printBlocks(ValidExts[key], blocks, barWidth)
+	}
+}
+
+// Analize takes a file and performs various tests for file
+func Analize(f os.FileInfo, path string) {
+	// Filesize Statistic
+	updateSizeStat(f)
+
+	// Filetype Specific Analysis
+	switch ext, _ := GetExtension(f.Name()); ext {
+	case "go":
+		updateGoExtStat(f, path)
+	}
+
+	// TODO: Git Analysis
+}
+
+// DisplayReport writes all of the collected data to the screen. Called at the
+// end of the program when all files are analized.
+func DisplayReport() {
+	// Size summary report
+	dispSizeStat()
+
+	// File Specific Reports
+	if _, ok := sizeStat["go"]; ok {
+		displayGoExtStat()
+	}
+	// TODO: Git report
+}
+
+// GetExtensions takes a filename string, n, and returns the last part
+// of the file
+func GetExtension(n string) (string, bool) {
+	parts := strings.Split(n, ".")
+	if len(parts) == 1 {
+		return n, false
+	}
+
+	return parts[len(parts)-1], true
+}
+
+// printBlocks displays a label with a bar to the right of it.
+// Looks like the following:
+//
+// Go: [#######  ]
+//
+// With ext being the lefthand label, and bar of size n / max.
+func printBlocks(ext string, n int, max int) {
+	fmt.Printf("%5s: [", ext)
+	for i := 0; i < max; i++ {
+		if i < n {
+			//fmt.Print("#")
+			color.New(color.FgGreen).Fprintf(os.Stdout, "#")
+		} else {
+			fmt.Print(" ")
+		}
+	}
+	fmt.Print("]\n")
 }
 
 // LineCount counts the number of lines in a file given a filename.
