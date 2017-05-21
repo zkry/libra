@@ -16,6 +16,7 @@ type GoStat struct {
 	funcCt      int
 	interfaceCt int
 	fileCt      int
+	lineCt      int
 }
 
 var goStat GoStat
@@ -29,11 +30,13 @@ func updateGoExtStat(f os.FileInfo, path string) error {
 
 	funcCt := bytes.Count(data, []byte("func"))
 	interfaceCt := bytes.Count(data, []byte("interface"))
+	lineCt := bytes.Count(data, []byte("\n"))
 
 	goStatMutex.Lock()
 	goStat.funcCt = goStat.funcCt + funcCt
 	goStat.interfaceCt = goStat.interfaceCt + interfaceCt
 	goStat.fileCt += 1
+	goStat.lineCt += lineCt
 	goStatMutex.Unlock()
 
 	return nil
@@ -46,6 +49,7 @@ func displayGoExtStat() {
 	fmt.Printf("Number of Files      : %d\n", goStat.fileCt)
 	fmt.Printf("Number of Functions  : %d\n", goStat.funcCt)
 	fmt.Printf("Number of Interfaces : %d\n", goStat.interfaceCt)
+	fmt.Printf("Nubmer of Lines      : %d\n", goStat.lineCt)
 }
 
 var sizeStat = map[string]int64{}

@@ -15,6 +15,7 @@ var ValidExts = map[string]string{
 	"f":     "F",
 	"fs":    "f#",
 	"go":    "Go",
+	"html":  "HTML",
 	"java":  "Java",
 	"js":    "Javascript",
 	"kt":    "Koltin",
