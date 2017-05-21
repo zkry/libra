@@ -1,4 +1,5 @@
 # libra ♎️
+![A sample example of the program](https://github.com/zkry/docs/example.png "An example of the program running")
 Libra is a command line utility that shows various statistics related with a directory. The output is similar to what you would find at the top of a GitHub repo page. **This app is currently in development.** This code has only been tested on OSX.
 
 ## Installation and Usage
