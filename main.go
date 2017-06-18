@@ -4,8 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
+	"os/exec"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/zkry/libra/analysis"
 )
@@ -60,6 +65,7 @@ func analizeDir(filepath string) {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	flag.BoolVar(&flagHelp, "h", false, "Show the help dialoge")
 	flag.BoolVar(&flagAll, "a", false, "Traverse through all of the directories, including hidden ones")
 
@@ -79,12 +85,45 @@ func main() {
 		filepath = flag.Arg(0)
 	}
 
+	// Check for online github repo
+	githubRegexp := regexp.MustCompile("^.*github\\.com/([[:alnum:]]+)/([[:alnum:]]+)$")
+	if githubRegexp.MatchString(filepath) {
+		match := githubRegexp.FindStringSubmatch(filepath)
+		username := match[1]
+		project := match[2]
+		file, err := getGithubInfo(username, project)
+		if err != nil {
+			fmt.Println("Could not read from github.com/" + username + "/" + project)
+			return
+		}
+		filepath = file
+		defer deleteFile(filepath)
+	}
+
 	wg.Add(1)
 	go analizeDir(filepath)
 
 	wg.Wait()
 
 	analysis.DisplayReport()
+}
+
+func deleteFile(filepath string) {
+	cmd := exec.Command("rm", "-rf", filepath)
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("There was an error in removing temporary file. You may need to manually remove " + filepath)
+	}
+}
+
+func getGithubInfo(username, project string) (string, error) {
+	fileID := strconv.Itoa(rand.Intn(999999))
+	cmd := exec.Command("git", "clone", "https://github.com/"+username+"/"+project+".git", "/tmp/"+"libra-"+fileID) // BUG: Different OS
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+	return "/tmp/" + "libra-" + fileID, nil
 }
 
 func helpMessage() {
