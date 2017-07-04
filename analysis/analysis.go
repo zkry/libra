@@ -43,6 +43,11 @@ func updateGoExtStat(f os.FileInfo, path string) error {
 	return nil
 }
 
+type PythonStat struct {
+	fileCt int
+	lineCt int
+}
+
 // displayGoExtStat takes the goStat variable and prints it to the screen
 // in a pretty way
 func displayGoExtStat() {
@@ -51,6 +56,31 @@ func displayGoExtStat() {
 	fmt.Printf("Number of Functions  : %d\n", goStat.funcCt)
 	fmt.Printf("Number of Interfaces : %d\n", goStat.interfaceCt)
 	fmt.Printf("Nubmer of Lines      : %d\n", goStat.lineCt)
+}
+
+var pythonStat PythonStat
+var pythonStatMutex sync.Mutex
+
+func updatePythonExtStat(f os.FileInfo, path string) error {
+	data, err := ioutil.ReadFile(path + "/" + f.Name())
+	if err != nil {
+		return err
+	}
+
+	lineCt := bytes.Count(data, []byte("\n"))
+
+	pythonStatMutex.Lock()
+	pythonStat.fileCt += 1
+	pythonStat.lineCt += lineCt
+	pythonStatMutex.Unlock()
+
+	return nil
+}
+
+func displayPythonExtStat() {
+	fmt.Printf("\n============= Go =============\n")
+	fmt.Printf("Number of Files   : %d\n", pythonStat.fileCt)
+	fmt.Printf("Number of Lines   : %d\n", pythonStat.lineCt)
 }
 
 var sizeStat = map[string]int64{}
@@ -182,6 +212,8 @@ func Analize(f os.FileInfo, path string, wg *sync.WaitGroup) {
 	switch ext, _ := GetExtension(f.Name()); ext {
 	case "go":
 		updateGoExtStat(f, path)
+	case "py":
+		updatePythonExtStat(f, path)
 	}
 
 	// TODO: Git Analysis
@@ -199,6 +231,10 @@ func DisplayReport() {
 	if _, ok := sizeStat["go"]; ok {
 		displayGoExtStat()
 	}
+	if _, ok := sizeStat["python"]; ok {
+		displayPythonExtStat()
+	}
+
 	// TODO: Git report
 }
 
