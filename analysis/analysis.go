@@ -17,7 +17,6 @@ type GoStat struct {
 	funcCt      int
 	interfaceCt int
 	fileCt      int
-	lineCt      int
 }
 
 var goStat GoStat
@@ -31,21 +30,14 @@ func updateGoExtStat(f os.FileInfo, path string) error {
 
 	funcCt := bytes.Count(data, []byte("func"))
 	interfaceCt := bytes.Count(data, []byte("interface"))
-	lineCt := bytes.Count(data, []byte("\n"))
 
 	goStatMutex.Lock()
 	goStat.funcCt = goStat.funcCt + funcCt
 	goStat.interfaceCt = goStat.interfaceCt + interfaceCt
 	goStat.fileCt += 1
-	goStat.lineCt += lineCt
 	goStatMutex.Unlock()
 
 	return nil
-}
-
-type PythonStat struct {
-	fileCt int
-	lineCt int
 }
 
 // displayGoExtStat takes the goStat variable and prints it to the screen
@@ -55,39 +47,35 @@ func displayGoExtStat() {
 	fmt.Printf("Number of Files      : %d\n", goStat.fileCt)
 	fmt.Printf("Number of Functions  : %d\n", goStat.funcCt)
 	fmt.Printf("Number of Interfaces : %d\n", goStat.interfaceCt)
-	fmt.Printf("Nubmer of Lines      : %d\n", goStat.lineCt)
+}
+
+type PythonStat struct {
+	fileCt int
 }
 
 var pythonStat PythonStat
 var pythonStatMutex sync.Mutex
 
 func updatePythonExtStat(f os.FileInfo, path string) error {
-	data, err := ioutil.ReadFile(path + "/" + f.Name())
-	if err != nil {
-		return err
-	}
-
-	lineCt := bytes.Count(data, []byte("\n"))
 
 	pythonStatMutex.Lock()
 	pythonStat.fileCt += 1
-	pythonStat.lineCt += lineCt
 	pythonStatMutex.Unlock()
 
 	return nil
 }
 
 func displayPythonExtStat() {
-	fmt.Printf("\n============= Go =============\n")
+	fmt.Printf("\n============= Python =============\n")
 	fmt.Printf("Number of Files   : %d\n", pythonStat.fileCt)
-	fmt.Printf("Number of Lines   : %d\n", pythonStat.lineCt)
 }
 
 var sizeStat = map[string]int64{}
+var lineStat = map[string]int{}
 var sizeStatMutex sync.Mutex
 
 // updateSizeStat takes a file and updates the size map for that file
-func updateSizeStat(f os.FileInfo) {
+func updateSizeStat(f os.FileInfo, path string) {
 	sizeStatMutex.Lock()
 	// Check if a . extension exists
 	ext, extOK := GetExtension(f.Name())
@@ -98,6 +86,17 @@ func updateSizeStat(f os.FileInfo) {
 			sizeStat[ext] = val + f.Size()
 		} else {
 			sizeStat[ext] = f.Size()
+		}
+
+		// Get the line count
+		data, err := ioutil.ReadFile(path + "/" + f.Name())
+		if err == nil {
+			lineCt := bytes.Count(data, []byte("\n"))
+			if val, ok := lineStat[ext]; ok {
+				lineStat[ext] = val + lineCt
+			} else {
+				lineStat[ext] = lineCt
+			}
 		}
 	}
 	sizeStatMutex.Unlock()
@@ -129,7 +128,7 @@ func dispSizeStat() {
 	for _, key := range keys {
 		val := sizeStat[key]
 		blocks := int(float64(val) / float64(maxSize) * float64(barWidth))
-		printBlocks(ValidExts[key], blocks, barWidth, float64(val)/float64(sum)*100.0, maxLabelWidth)
+		printBlocks(ValidExts[key], blocks, barWidth, float64(val)/float64(sum)*100.0, maxLabelWidth, lineStat[key])
 	}
 }
 
@@ -183,7 +182,7 @@ func keysBySortedVal(m map[string]int64) []string {
 // Go: [#######  ]
 //
 // With ext being the lefthand label, and bar of size n / max.
-func printBlocks(name string, n int, max int, percent float64, labelWidth int) {
+func printBlocks(name string, n int, max int, percent float64, labelWidth int, lineCt int) {
 	// Generate padding to left of label
 	padding := labelWidth - len(name)
 	for i := 0; i < padding; i++ {
@@ -200,13 +199,13 @@ func printBlocks(name string, n int, max int, percent float64, labelWidth int) {
 		}
 	}
 	// Ending and percentage
-	fmt.Printf("] %6.2f%%\n", percent)
+	fmt.Printf("] %6.2f%% (%6d)\n", percent, lineCt)
 }
 
 // Analize takes a file and performs various tests for file
 func Analize(f os.FileInfo, path string, wg *sync.WaitGroup) {
 	// Filesize Statistic
-	updateSizeStat(f)
+	updateSizeStat(f, path)
 
 	// Filetype Specific Analysis
 	switch ext, _ := GetExtension(f.Name()); ext {
