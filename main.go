@@ -27,6 +27,7 @@ import (
 var flagHelp bool
 var flagAll bool
 
+// wg is the wait group for managing threads that read files. Upon finding a directory, a new go routine is added and the wait groups cout is increased.
 var wg sync.WaitGroup
 
 // isHidden returns wheather or not the file is a hidden file by checking
@@ -78,15 +79,15 @@ func main() {
 
 	var filepath string
 	if flag.NArg() == 0 {
-		//		fmt.Println("Usage: libra <filepath>")
-		filepath = "." // For debugging purposes only
-		// return
+		fmt.Println("Usage: libra <filepath>")
+		return
 	} else {
 		filepath = flag.Arg(0)
 	}
 
 	// Check for online github repo
 	githubRegexp := regexp.MustCompile("^.*github\\.com/([[:alnum:]]+)/([[:alnum:]]+)$")
+	// If the filepath is a valid github repo
 	if githubRegexp.MatchString(filepath) {
 		match := githubRegexp.FindStringSubmatch(filepath)
 		username := match[1]
@@ -100,6 +101,7 @@ func main() {
 		defer deleteFile(filepath)
 	}
 
+	// Start file search
 	wg.Add(1)
 	go analizeDir(filepath)
 
@@ -108,6 +110,7 @@ func main() {
 	analysis.DisplayReport()
 }
 
+// deleteFile deletes the tempoarary repository downloaded from github
 func deleteFile(filepath string) {
 	cmd := exec.Command("rm", "-rf", filepath)
 	err := cmd.Run()
