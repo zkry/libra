@@ -30,7 +30,7 @@ var flagAll bool
 // wg is the wait group for managing threads that read files. Upon finding a directory, a new go routine is added and the wait groups cout is increased.
 var wg sync.WaitGroup
 
-// isHidden returns wheather or not the file is a hidden file by checking
+// shouldSkipDir returns wheather or not the file is a hidden file by checking
 // if its first character is a '.' TODO: Other systems hidden files???
 func shouldSkipDir(n string) bool {
 	// All flag overwrites all directory decisions
@@ -119,6 +119,7 @@ func deleteFile(filepath string) {
 	}
 }
 
+// getGithubInfo clones the specified github repo in a temporary repository
 func getGithubInfo(username, project string) (string, error) {
 	fileID := strconv.Itoa(rand.Intn(999999))
 	cmd := exec.Command("git", "clone", "https://github.com/"+username+"/"+project+".git", "/tmp/"+"libra-"+fileID) // BUG: Different OS
