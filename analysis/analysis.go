@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
+	enry "gopkg.in/src-d/enry.v1"
 )
 
 var sizeStat = map[string]int64{}
@@ -21,10 +22,10 @@ var sizeStatMutex sync.Mutex
 func updateSizeStat(f os.FileInfo, path string) {
 	sizeStatMutex.Lock()
 	// Check if a . extension exists
-	ext, extOK := GetExtension(f.Name())
-	_, typeOK := ValidExts[ext]
+	// ext, extOK := GetExtension(f.Name())
+	ext, typeOK := enry.GetLanguageByExtension(f.Name())
 
-	if extOK && typeOK {
+	if typeOK {
 		if val, ok := sizeStat[ext]; ok {
 			sizeStat[ext] = val + f.Size()
 		} else {
@@ -60,8 +61,8 @@ func dispSizeStat() {
 		if val > maxSize {
 			maxSize = val
 		}
-		if len(ValidExts[key]) > maxLabelWidth {
-			maxLabelWidth = len(ValidExts[key])
+		if len(key) > maxLabelWidth {
+			maxLabelWidth = len(key)
 		}
 	}
 
@@ -71,7 +72,7 @@ func dispSizeStat() {
 	for _, key := range keys {
 		val := sizeStat[key]
 		blocks := int(float64(val) / float64(maxSize) * float64(barWidth))
-		printBlocks(ValidExts[key], blocks, barWidth, float64(val)/float64(sum)*100.0, maxLabelWidth, lineStat[key])
+		printBlocks(key, blocks, barWidth, float64(val)/float64(sum)*100.0, maxLabelWidth, lineStat[key])
 	}
 }
 
@@ -183,6 +184,8 @@ func DisplayReport() {
 // GetExtensions takes a filename string, n, and returns the last part
 // of the file
 func GetExtension(n string) (string, bool) {
+	lang, safe := enry.GetLanguageByExtension(n)
+	fmt.Println(n, ":", lang, safe)
 	parts := strings.Split(n, ".")
 	if len(parts) == 1 {
 		return n, false
