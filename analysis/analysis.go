@@ -184,8 +184,6 @@ func DisplayReport() {
 // GetExtensions takes a filename string, n, and returns the last part
 // of the file
 func GetExtension(n string) (string, bool) {
-	lang, safe := enry.GetLanguageByExtension(n)
-	fmt.Println(n, ":", lang, safe)
 	parts := strings.Split(n, ".")
 	if len(parts) == 1 {
 		return n, false
